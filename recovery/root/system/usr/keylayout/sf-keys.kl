@@ -1,0 +1,9 @@
+# Leaf5 只有音量键可用，其他按键屏蔽或映射为无用键
+key 102 HOME              # 如有物理 HOME 键，但可能无法使用
+key 139 MENU              # 屏蔽菜单键
+key 158 BACK              # 屏蔽返回键
+key 103 DPAD_UP           # 方向上（如有）
+key 108 DPAD_DOWN         # 方向下（如有）
+key 105 DPAD_LEFT         # 方向左（如有）
+key 106 DPAD_RIGHT        # 方向右（如有）
+key 116 POWER             # 电源键（可能无法用于确认）
