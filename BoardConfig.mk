@@ -24,8 +24,8 @@ BOARD_KERNEL_IMAGE_NAME := Image
 BOARD_MKBOOTIMG_ARGS := --header_version 2 --ramdisk_offset 0x01000000 --tags_offset 0x00000100
 
 # DTBO 配置
-BOARD_INCLUDE_RECOVERY_DTBO := true
-BOARD_PREBUILT_DTBOIMAGE := $(DEVICE_PATH)/prebuilt/dtbo.img
+BOARD_INCLUDE_RECOVERY_DTBO := false
+#BOARD_PREBUILT_DTBOIMAGE := $(DEVICE_PATH)/prebuilt/dtbo.img
 
 # ========== 分区配置（物理 A/B + 动态分区）==========
 AB_OTA_UPDATER := true
