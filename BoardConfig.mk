@@ -1,5 +1,24 @@
 DEVICE_PATH := device/leaf/leaf5
 
+# For building with minimal manifest
+ALLOW_MISSING_DEPENDENCIES := true
+
+# ========== VAB 配置（虚拟 A/B）==========
+AB_OTA_UPDATER := true
+AB_OTA_PARTITIONS += \
+    boot \
+    odm \
+    vendor \
+    system_ext \
+    system \
+    product
+
+# VAB 快照支持
+BOARD_USES_SNAPSHOT := true
+
+# 你有独立 recovery 分区，禁用 recovery-as-boot
+# BOARD_USES_RECOVERY_AS_BOOT := false
+
 # ========== 架构配置（骁龙 765G/lito）==========
 TARGET_ARCH := arm64
 TARGET_ARCH_VARIANT := armv8-a
@@ -15,69 +34,87 @@ TARGET_2ND_CPU_ABI2 := armeabi
 TARGET_2ND_CPU_VARIANT := generic
 TARGET_2ND_CPU_VARIANT_RUNTIME := cortex-a76
 
+# ========== APEX ==========
+OVERRIDE_TARGET_FLATTEN_APEX := true
+
+# ========== Bootloader ==========
+TARGET_BOOTLOADER_BOARD_NAME := lito
+TARGET_NO_BOOTLOADER := true
+
 # ========== 内核配置 ==========
-TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilt/kernel
-BOARD_KERNEL_CMDLINE := console=null androidboot.hardware=qcom androidboot.memcg=1 lpm_levels.sleep_disabled=1 video=vfb:640x400,bpp=32,memsize=3072000 msm_rtb.filter=0x237 service_locator.enable=1 androidboot.usbcontroller=a600000.dwc3 swiotlb=0 loop.max_part=7 cgroup.memory=nokmem,nosocket reboot=panic_warm kptr_restrict=2
+BOARD_BOOTIMG_HEADER_VERSION := 3
 BOARD_KERNEL_BASE := 0x00000000
+BOARD_KERNEL_CMDLINE := console=null androidboot.hardware=qcom androidboot.memcg=1 lpm_levels.sleep_disabled=1 video=vfb:640x400,bpp=32,memsize=3072000 msm_rtb.filter=0x237 service_locator.enable=1 androidboot.usbcontroller=a600000.dwc3 swiotlb=0 loop.max_part=7 cgroup.memory=nokmem,nosocket reboot=panic_warm kptr_restrict=2
 BOARD_KERNEL_PAGESIZE := 4096
+BOARD_RAMDISK_OFFSET := 0x01000000
+BOARD_KERNEL_TAGS_OFFSET := 0x00000100
+BOARD_MKBOOTIMG_ARGS += --header_version $(BOARD_BOOTIMG_HEADER_VERSION)
+BOARD_MKBOOTIMG_ARGS += --ramdisk_offset $(BOARD_RAMDISK_OFFSET)
+BOARD_MKBOOTIMG_ARGS += --tags_offset $(BOARD_KERNEL_TAGS_OFFSET)
 BOARD_KERNEL_IMAGE_NAME := Image
-BOARD_MKBOOTIMG_ARGS := --header_version 2 --ramdisk_offset 0x01000000 --tags_offset 0x00000100
 
-# DTBO 配置
-BOARD_INCLUDE_RECOVERY_DTBO := true
+# 内核 - 预编译
+TARGET_FORCE_PREBUILT_KERNEL := true
+ifeq ($(TARGET_FORCE_PREBUILT_KERNEL),true)
+TARGET_PREBUILT_KERNEL := $(DEVICE_PATH)/prebuilt/kernel
+TARGET_PREBUILT_DTB := $(DEVICE_PATH)/prebuilt/dtb.img
+BOARD_MKBOOTIMG_ARGS += --dtb $(TARGET_PREBUILT_DTB)
+#BOARD_INCLUDE_DTB_IN_BOOTIMG := true
 BOARD_PREBUILT_DTBOIMAGE := $(DEVICE_PATH)/prebuilt/dtbo.img
+BOARD_KERNEL_SEPARATED_DTBO := true
+endif
 
-# ========== 分区配置（物理 A/B + 动态分区）==========
-AB_OTA_UPDATER := true
-AB_OTA_PARTITIONS := \
-    boot \
-    system \
-    vendor \
-    product \
-    system_ext \
-    odm \
-    vbmeta_system \
-    dtbo
+# ========== 分区配置 ==========
+BOARD_FLASH_BLOCK_SIZE := 262144
+BOARD_BOOTIMAGE_PARTITION_SIZE := 104857600
+BOARD_RECOVERYIMAGE_PARTITION_SIZE := 104857600
+BOARD_HAS_LARGE_FILESYSTEM := true
 
-# 动态分区（Super）- 6GB
-BOARD_SUPER_PARTITION_SIZE := 6442450944
+# 动态分区（Super）
+BOARD_SUPER_PARTITION_SIZE := 9126805504
 BOARD_SUPER_PARTITION_GROUPS := qcom_dynamic_partitions
-BOARD_QCOM_DYNAMIC_PARTITIONS_SIZE := 6438256640
-BOARD_QCOM_DYNAMIC_PARTITIONS_PARTITION_LIST := system system_ext product vendor odm
+BOARD_QCOM_DYNAMIC_PARTITIONS_PARTITION_LIST := system system_ext vendor odm product
+BOARD_QCOM_DYNAMIC_PARTITIONS_SIZE := 9122611200
 
-# 分区大小（基于 GPT 表）
-BOARD_BOOTIMAGE_PARTITION_SIZE := 104857600      # 100MB
-BOARD_RECOVERYIMAGE_PARTITION_SIZE := 104857600  # 100MB
-BOARD_DTBOIMG_PARTITION_SIZE := 25165824         # 24MB
-BOARD_USERDATAIMAGE_PARTITION_SIZE := 52848230400 # ~49GB
-
-# 文件系统类型（关键修复：必须完整）
+# 文件系统类型（必须完整）
 BOARD_SYSTEMIMAGE_FILE_SYSTEM_TYPE := ext4
 BOARD_VENDORIMAGE_FILE_SYSTEM_TYPE := ext4
 BOARD_PRODUCTIMAGE_FILE_SYSTEM_TYPE := ext4
 BOARD_SYSTEM_EXTIMAGE_FILE_SYSTEM_TYPE := ext4
 BOARD_ODMIMAGE_FILE_SYSTEM_TYPE := ext4
 
-# 输出配置（关键修复：必须添加）
+# 输出配置
 TARGET_COPY_OUT_VENDOR := vendor
 TARGET_COPY_OUT_PRODUCT := product
 TARGET_COPY_OUT_SYSTEM_EXT := system_ext
 TARGET_COPY_OUT_ODM := odm
 
-# 用户数据文件系统
+# 用户数据
 TARGET_USERIMAGES_USE_EXT4 := true
 TARGET_USERIMAGES_USE_F2FS := true
+BOARD_USERDATAIMAGE_FILE_SYSTEM_TYPE := f2fs
 
-# ========== Recovery 配置（独立 recovery 分区）==========
+# ========== 平台 ==========
+TARGET_BOARD_PLATFORM := lito
+
+# ========== Recovery 配置 ==========
+TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888
 TARGET_NO_RECOVERY := false
-# 不要设置 BOARD_USES_RECOVERY_AS_BOOT！
+
+# ========== 安全补丁（防止回滚）==========
+PLATFORM_SECURITY_PATCH := 2099-12-31
+VENDOR_SECURITY_PATCH := 2099-12-31
+PLATFORM_VERSION := 16.1.0
+
+# ========== AVB（验证启动）==========
+BOARD_AVB_ENABLE := true
+BOARD_AVB_MAKE_VBMETA_IMAGE_ARGS += --flags 3
 
 # ========== 墨水屏特定配置 ==========
-TARGET_RECOVERY_PIXEL_FORMAT := RGBX_8888
 TW_THEME := portrait_hdpi
-TW_NO_SCREEN_TIMEOUT := true      # 墨水屏无烧屏风险
-TW_NO_SCREEN_BLANK := true        # 禁用黑屏（墨水屏唤醒慢）
-TW_SCREEN_BLANK_ON_BOOT := false  # 启动不黑屏
+TW_NO_SCREEN_TIMEOUT := true
+TW_NO_SCREEN_BLANK := true
+TW_SCREEN_BLANK_ON_BOOT := false
 
 # 亮度配置（Leaf5 最大亮度 32）
 TW_BRIGHTNESS_PATH := "/sys/class/backlight/panel0-backlight/brightness"
@@ -89,29 +126,27 @@ TW_NO_BRIGHTNESS := false
 TW_NO_HAPTICS := true
 
 # 性能优化（墨水屏低刷新率）
-TW_NO_CPU_TEMP := true            # 禁用温度显示
-TW_NO_ANIMATIONS := true          # 禁用动画
+TW_NO_CPU_TEMP := true
+TW_NO_ANIMATIONS := true
 
-# ========== 按键配置（只有音量上下可用）==========
-# 音量键默认：上=导航向上，下=导航向下
-# 电源键=确认（如果可用）
-
-# ========== 加密支持（Android 13 FBE）=========
+# ========== 加密支持（Android 13 FBE）==========
 TW_INCLUDE_CRYPTO := true
 TW_INCLUDE_CRYPTO_FBE := true
 TW_INCLUDE_FBE_METADATA_DECRYPT := true
 BOARD_USES_METADATA_PARTITION := true
 
-# ========== 其他功能 ==========
+# ========== 其他 TWRP 配置 ==========
+TW_INPUT_BLACKLIST := "hbtp_vm"
+TW_USE_TOOLBOX := true
 TW_INCLUDE_REPACKTOOLS := true
 TW_INCLUDE_RESETPROP := true
 TW_INCLUDE_LIBRESETPROP := true
 TW_INCLUDE_NTFS_3G := true
 TW_INCLUDE_LPTOOLS := true
 TW_EXCLUDE_DEFAULT_USB_INIT := true
-TW_USE_TOOLBOX := true
 RECOVERY_SDCARD_ON_DATA := true
 TW_HAS_MTP := true
+TW_EXTRA_LANGUAGES := true
 
 # 调试
 TWRP_INCLUDE_LOGCAT := true
